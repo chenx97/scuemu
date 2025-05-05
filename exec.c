@@ -1,38 +1,8 @@
 #include "cpu.h"
+#include "exec.h"
 #include <signal.h>
 
-#define def(x) void x(CPU *cpu, insn *insn, uint32_t *mem)
-#define exec(x) x(cpu, &insn, mem)
-#define arith(x) updapsr(cpu->apsr, x)
-
-typedef struct {
-  uint32_t stub : 10;
-  uint32_t rs2 : 6;
-  uint32_t rs1 : 6;
-  uint32_t rd : 6;
-  uint32_t opcode : 4;
-} r;
-
-typedef struct {
-  int32_t imm : 16;
-  uint32_t rs1 : 6;
-  uint32_t rd : 6;
-  uint32_t opcode : 4;
-} i;
-
-typedef struct {
-  int32_t offset : 22;
-  uint32_t rd : 6;
-  uint32_t opcode : 4;
-} pc_offset;
-
-typedef union {
-  r r_insn;
-  i imm_insn;
-  pc_offset svpc_insn;
-} insn;
-
-uint32_t updapsr(uint16_t *apsr, uint32_t value) {
+uint32_t updapsr(uint32_t *apsr, uint32_t value) {
   apsr[0] = value == 0;
   apsr[1] = value >> 31;
   return value;
@@ -40,7 +10,7 @@ uint32_t updapsr(uint16_t *apsr, uint32_t value) {
 
 def(svpc) {
   uint32_t *reg = cpu->reg;
-  pc_offset *decoded = &insn->svpc_insn;
+  relpc22 *decoded = &insn->svpc_insn;
   reg[decoded->rd] = cpu->pc + decoded->offset;
   cpu->pc++;
 }
@@ -103,7 +73,7 @@ def(brz) {
 }
 
 def(wai) {
-  pc_offset *decoded = &insn->svpc_insn;
+  relpc22 *decoded = &insn->svpc_insn;
   cpu->reg[decoded->rd] = cpu->pc;
   cpu->pc++;
 }
@@ -117,33 +87,31 @@ def(brn) {
 }
 
 void execute(CPU *cpu, uint32_t *mem) {
-  uint32_t word = mem[cpu->pc];
-  insn insn;
-  ((uint32_t *)&insn)[0] = word;
+  insn insn = {.word = mem[cpu->pc]};
   switch (insn.r_insn.opcode) {
-  case 0b0000:
+  case NOP:
     cpu->pc++;
     arith(0);
     break;
   case 0b0001:
     raise(SIGILL);
     break;
-  case 0b0011:
+  case ST:
     exec(st);
     break;
   case 0b0010:
     raise(SIGILL);
     break;
-  case 0b0110:
+  case NEG:
     exec(neg);
     break;
-  case 0b0111:
+  case SUB:
     exec(sub);
     break;
-  case 0b0101:
+  case ADDI:
     exec(addi);
     break;
-  case 0b0100:
+  case ADD:
     exec(add);
     break;
   case 0b1100:
@@ -152,22 +120,22 @@ void execute(CPU *cpu, uint32_t *mem) {
   case 0b1101:
     raise(SIGILL);
     break;
-  case 0b1111:
+  case SVPC:
     exec(svpc);
     break;
-  case 0b1110:
+  case LD:
     exec(ld);
     break;
-  case 0b1010:
+  case WAI:
     exec(wai);
     break;
-  case 0b1011:
+  case BRN:
     exec(brn);
     break;
-  case 0b1001:
+  case BRZ:
     exec(brz);
     break;
-  case 0b1000:
+  case J:
     exec(jmp);
     break;
   }

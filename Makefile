@@ -1,11 +1,16 @@
 BIN = a.out
 OFILES = $(patsubst %.c,%.o,$(wildcard *.c))
-CFLAGS += -O3 -g
+CFLAGS += -Os -g $(shell pkg-config --cflags glib-2.0)
 LDFLAGS += $(CFLAGS)
-LDLIBS =
+LDLIBS = -lgccjit $(shell pkg-config --libs glib-2.0)
 ifeq ($(KEEPOBJ),)
 	CLEANOBJ = $(wildcard *.o)
 endif
+
+ifneq ($(DEBUG),)
+	CFLAGS += -DDEBUG
+endif
+
 CLEAN = $(wildcard $(CLEANOBJ) $(BIN))
 
 all: $(BIN)
