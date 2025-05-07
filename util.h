@@ -6,6 +6,7 @@
 #define clean_up(fn) __attribute__((cleanup(fn)))
 
 #if defined(DEBUG)
+#include <inttypes.h>
 #define cg_dprintf printf
 #define DEF 1
 #else
