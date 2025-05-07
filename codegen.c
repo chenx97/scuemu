@@ -68,8 +68,7 @@ gcc_jit_result *gen_code(uint32_t *startpc, uint32_t voffset, uint32_t size) {
   // params will be initialized externally
   gcc_jit_function *fn = gcc_jit_context_new_function(
       ctxt, gen_jit_loc(ctxt, "fake_scu.s", 0, 0), GCC_JIT_FUNCTION_EXPORTED,
-      int_type, "_start", /* FIXME */
-      0, NULL, 0);
+      int_type, "_start", 0, NULL, 0);
 
   gcc_jit_block *initial = gcc_jit_function_new_block(fn, "initial");
   // init a 128-entry block
@@ -83,7 +82,7 @@ gcc_jit_result *gen_code(uint32_t *startpc, uint32_t voffset, uint32_t size) {
     case J:
     case BRZ:
     case BRN:
-      size--;
+      size++;
       break;
     default:
       size_on_j = 0;
